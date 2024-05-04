@@ -1,8 +1,5 @@
-# cargo-features = ["per-package-target"]
-
-
 [package]
-name = "aya-xdp-syncookies-nobullshit"
+name = "xdp-loader"
 version = "0.1.0"
 edition = "2021"
 

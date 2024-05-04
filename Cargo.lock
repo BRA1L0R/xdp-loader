@@ -154,20 +154,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aya-xdp-syncookies-nobullshit"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "aya",
- "aya-log",
- "clap",
- "libc",
- "log",
- "simple_logger",
- "tokio",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -835,6 +821,20 @@ name = "windows_x86_64_msvc"
 version = "0.52.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32b752e52a2da0ddfbdbcc6fceadfeede4c939ed16d13e648833a61dfb611ed8"
+
+[[package]]
+name = "xdp-loader"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aya",
+ "aya-log",
+ "clap",
+ "libc",
+ "log",
+ "simple_logger",
+ "tokio",
+]
 
 [[package]]
 name = "zerocopy"
