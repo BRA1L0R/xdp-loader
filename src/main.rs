@@ -11,8 +11,15 @@ use tokio::signal;
 
 #[derive(Parser)]
 struct Options {
+    #[arg(short)]
     interface: String,
+    #[arg(short, long)]
     mode: Option<String>,
+    #[arg(short, long, default_value_t = false)]
+    logging: bool,
+    #[arg(short, long, default_value_t = false)]
+    pin_maps: bool,
+
     file: String,
 }
 
@@ -58,7 +65,18 @@ async fn run() -> anyhow::Result<()> {
 
     let mut program = Ebpf::load(&aligned).unwrap();
 
-    EbpfLogger::init(&mut program).unwrap();
+    if options.logging {
+        EbpfLogger::init(&mut program).unwrap();
+    }
+
+    if options.pin_maps {
+        for (name, map) in program.maps() {
+            let map_path = format!("/sys/fs/bpf/{name}");
+
+            std::fs::remove_file(&map_path).ok();
+            map.pin(&map_path).context("failed to pin map")?;
+        }
+    }
 
     for (name, program) in program.programs_mut() {
         log::info!("Loading {name} program...");
@@ -70,7 +88,6 @@ async fn run() -> anyhow::Result<()> {
     }
 
     log::info!("Loaded everything!");
-
     signal::ctrl_c().await?;
 
     Ok(())
