@@ -1,13 +1,12 @@
 use std::alloc::Layout;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use aya::{
     programs::{Xdp, XdpFlags},
     Ebpf,
 };
 use aya_log::EbpfLogger;
 use clap::Parser;
-use tokio::signal;
 
 #[derive(Parser)]
 struct Options {
@@ -23,12 +22,11 @@ struct Options {
     file: String,
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    run().await
+fn main() -> anyhow::Result<()> {
+    run()
 }
 
-async fn run() -> anyhow::Result<()> {
+fn run() -> anyhow::Result<()> {
     simple_logger::SimpleLogger::new()
         .env()
         .with_level(log::LevelFilter::Info)
@@ -39,6 +37,7 @@ async fn run() -> anyhow::Result<()> {
     let mode = match options.mode.as_deref() {
         Some("driver") => XdpFlags::DRV_MODE,
         Some("hardware") => XdpFlags::HW_MODE,
+        Some(unk) => bail!("Unknown XDP mode `{unk}`"),
         _ => {
             log::warn!("XDP mode not specified: using SKB_MODE. This emulated mode DOES NOT perform well and should not be used outside of testing");
             XdpFlags::default()
@@ -88,7 +87,10 @@ async fn run() -> anyhow::Result<()> {
     }
 
     log::info!("Loaded everything!");
-    signal::ctrl_c().await?;
+    // signal::ctrl_c().await?;
+    // ctrlc::
 
-    Ok(())
+    loop {
+        std::thread::park()
+    }
 }
