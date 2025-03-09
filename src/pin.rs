@@ -46,8 +46,8 @@ where
 {
     let base = base.as_ref();
     objs.map(|(name, pinnable)| (base.join(name), pinnable))
-        .filter(|(path, _)| !dbg!(path.exists()))
-        .try_for_each(|(path, pinnable)| pinnable.pin(dbg!(path)))
+        .filter(|(path, _)| !path.exists())
+        .try_for_each(|(path, pinnable)| pinnable.pin(path))
 }
 
 /// Unpins all files from a directory by deleting all files from the
@@ -73,6 +73,7 @@ impl PinFolder {
         let path: PathBuf = path.into();
 
         if !path.exists() {
+            log::debug!("Creating folder {:#?}", &path);
             std::fs::create_dir(&path)?;
         }
 
@@ -80,8 +81,19 @@ impl PinFolder {
     }
 
     pub fn unpin_all(&mut self) -> std::io::Result<()> {
+        log::debug!("Unpinning all from {:#?}", &self.0);
         std::fs::read_dir(&self.0)?.try_for_each(|dir| std::fs::remove_file(dir?.path()))
     }
+
+    // pub fn pin_all<P, I, N>(&self, iterator: I) -> Result<(), P::Error>
+    // where
+    //     P: Pinnable,
+    //     N: AsRef<Path>,
+    //     I: Iterator<Item = (N, P)>,
+    // {
+    //     log::debug!("Pinning all to {:#?}", &self.0);
+    //     pin_all(&self.0, iterator)
+    // }
 
     pub fn cleanup(self) -> std::io::Result<()> {
         std::fs::remove_dir(self.0)

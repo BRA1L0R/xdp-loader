@@ -63,7 +63,7 @@ impl Directories {
     /// ```rust
     /// let [maps_folder, links_folder, programs_folder] = directories.to_pin_folders()?;
     /// ```
-    pub fn to_pin_folders(self) -> std::io::Result<[PinFolder; 3]> {
+    pub fn to_pin_folders(&self) -> std::io::Result<[PinFolder; 3]> {
         if let Err(err) = std::fs::create_dir(&self.base) {
             if err.kind() != ErrorKind::AlreadyExists {
                 return Err(err);
@@ -71,13 +71,13 @@ impl Directories {
         }
 
         let folders = [
-            (self.overrides.maps, "maps"),
-            (self.overrides.links, "links"),
-            (self.overrides.programs, "programs"),
+            (&self.overrides.maps, "maps"),
+            (&self.overrides.links, "links"),
+            (&self.overrides.programs, "programs"),
         ];
 
         let [maps, links, programs] =
-            folders.map(|(replacement, name)| replacement.unwrap_or(self.base.join(name)));
+            folders.map(|(replacement, name)| replacement.clone().unwrap_or(self.base.join(name)));
 
         Ok([
             PinFolder::open_or_create(maps)?,
@@ -86,17 +86,9 @@ impl Directories {
         ])
     }
 
-    // check if the directories start with `/sys/fs/bpf`
-    // fn check_valid(&self) -> bool {
-    //     [
-    //         Some(&self.base),
-    //         self.overrides.maps.as_ref(),
-    //         self.overrides.links.as_ref(),
-    //         self.overrides.programs.as_ref(),
-    //         ].into_iter().all(|path| path.)
-    // }
-
-    // fn maps_folder() {}
+    pub fn base(&self) -> &Path {
+        &self.base
+    }
 }
 
 #[derive(Deserialize)]

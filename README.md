@@ -79,9 +79,12 @@ This isn't dangerous as-is, but those resources could stay leaked forever!
 Example configuration
 ```toml
 [directories]
-# maps = "/sys/fs/bpf/maps"
-# programs = "/sys/fs/bpf/programs"
-# links = "/sys/fs/bpf/links"
+base = "/sys/fs/bpf/my_program"
+
+[directories.overrides]
+maps = "/sys/fs/bpf/maps"
+programs = "/sys/fs/bpf/programs"
+links = "/sys/fs/bpf/links"
 
 [[attach]]
 program = "xdp_entry"
@@ -113,34 +116,7 @@ ifaces = ["if1, if2, if3"]
 ### Example Program
 
 ```c
-#include <linux/bpf.h>
-#include <bpf/bpf_helpers.h>
-#include <bpf/bpf_endian.h>
-#include <linux/in.h>
-#include <linux/if_ether.h>
-#include <linux/if_arp.h>
-#include <linux/ip.h>
-#include <linux/icmp.h>
-#include <linux/udp.h>
-#include <linux/tcp.h>
-#include <linux/ipv6.h>
-#include <linux/pkt_cls.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <sys/cdefs.h>
-
-#define ETH_LEN 14
-#define MAX_CSUM_WORDS 128
-#define MAX_PACKET_OFF 0xffff
-
-struct
-{
-   __uint(type, BPF_MAP_TYPE_ARRAY);
-   __uint(max_entries, 1000);
-   __type(key, __u32);
-   __type(value, __u32);
-   __uint(pinning, LIBBPF_PIN_BY_NAME);
-} my_map SEC(".maps");
+// imports are excluded for the sake of brevity
 
 struct
 {

@@ -38,30 +38,41 @@ impl DirectorySystem {
 //     fn try_from(value: config::Directories) -> Result<Self, Self::Error> {}
 // }
 
-fn detach_command(mut directories: DirectorySystem, cleanup: bool) -> anyhow::Result<()> {
+fn detach_command(config: Config, mut ds: DirectorySystem, cleanup: bool) -> anyhow::Result<()> {
     log::info!("Detaching XDP links and programs");
 
-    directories.links.unpin_all()?;
-    directories.programs.unpin_all()?;
+    ds.links.unpin_all()?;
+    ds.programs.unpin_all()?;
 
     if !cleanup {
         return Ok(());
     }
 
-    // proceed with folder cleanup
-    directories.links.cleanup()?;
-    directories.programs.cleanup()?;
+    log::info!("Proceeding with folder cleanup...");
 
-    if directories.maps.cleanup().is_err() {
+    // proceed with folder cleanup
+    ds.links.cleanup()?;
+    ds.programs.cleanup()?;
+
+    if ds.maps.cleanup().is_err() {
         log::warn!("Cannot cleanup maps because the folder is not empty. Retry the command with the -p (purge) option.");
+        return Ok(());
     };
+
+    // remove base directory only if maps cleanup succeeded
+
+    let base = config.directories.base();
+
+    log::debug!("Removing directory {base:#?}");
+    if std::fs::remove_dir(base).is_err() {
+        log::warn!("Cannot remove base directory {base:#?} since it is not empty")
+    }
 
     Ok(())
 }
 
 fn run(options: Options) -> anyhow::Result<()> {
     let config = Config::from_file(&options.config).context("error reading configuration file")?;
-
     let [maps, links, programs] = config.directories.to_pin_folders()?;
     let mut directories = DirectorySystem::new(maps, links, programs);
 
@@ -75,9 +86,11 @@ fn run(options: Options) -> anyhow::Result<()> {
     }
 
     let bpf_file = match options.command {
-        Command::Detach { cleanup } => return detach_command(directories, cleanup),
+        Command::Detach { cleanup } => return detach_command(config, directories, cleanup),
         Command::Attach { file } => file,
     };
+
+    log::info!("Attaching XDP program");
 
     // load the elf file containing the program
     // and load the existing bpf maps
@@ -103,14 +116,14 @@ fn run(options: Options) -> anyhow::Result<()> {
         .context("One of the program specified is not an XDP program type")?;
 
     // try loading every program into kernel memory
-    log::info!("Loading all programs into memory...");
+    log::debug!("Loading all programs into memory...");
     programs
         .iter_mut()
         .try_for_each(|(_, program)| program.load())?;
 
     std::thread::sleep(Duration::from_millis(100));
 
-    log::info!("Setting up jump tables...");
+    log::debug!("Setting up jump tables...");
     for (table_name, entries) in config.tables {
         let table = bpf_maps
             .get_mut(&table_name)
@@ -133,11 +146,11 @@ fn run(options: Options) -> anyhow::Result<()> {
         }
     }
 
-    log::info!("Detaching all XDP links...");
+    log::debug!("Detaching all XDP links...");
     directories.links.unpin_all()?;
     std::thread::sleep(Duration::from_millis(100));
 
-    log::info!("Attaching XDP links...");
+    log::debug!("Attaching XDP links...");
     for attachable in config.attach {
         let program = programs
             .get_mut(&*attachable.program)
@@ -158,10 +171,10 @@ fn run(options: Options) -> anyhow::Result<()> {
         }
     }
 
-    log::info!("Unpinning all old programs...");
+    log::debug!("Unpinning all old programs...");
     directories.programs.unpin_all()?;
 
-    log::info!("Pinning new programs...");
+    log::debug!("Pinning new programs...");
     pin::pin_all(&directories.programs, programs.into_iter())?;
 
     Ok(())
@@ -170,19 +183,21 @@ fn run(options: Options) -> anyhow::Result<()> {
 fn main() {
     let options = Options::parse();
 
-    let filter_level = if options.verbose {
-        LevelFilter::Info
-    } else {
-        LevelFilter::Warn
-    };
-
-    // maybe in another life
-    // let filter_level = [LevelFilter::Info, LevelFilter::Warn][options.verbose as usize];
-
     env_logger::builder()
-        .filter_level(filter_level)
+        .filter_level(LevelFilter::Trace)
         .parse_default_env()
         .init();
+
+    let Some(log_level) = options.log_level() else {
+        log::error!("Wrong log level options specified! Please do not specify more than one logging option (-v, -vv, -s, etc..)");
+        return;
+    };
+
+    // set the maximum log level.
+    // It is set here afterhand because we need
+    // the log::error functionality to notify the
+    // user if they input wrong shell options
+    log::set_max_level(log_level);
 
     if let Err(error) = run(options) {
         log::error!("Program exited with error:\n{error:?}");
