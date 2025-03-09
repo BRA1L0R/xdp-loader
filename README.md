@@ -1,0 +1,188 @@
+
+
+## Details
+
+- Folder structures
+  - Maps and program sections will be saved in their corresponding folder with the same name as the section
+  - Links will be saved with the following naming scheme: `{if name}_{program name}`
+- Verbose debug output through the `-v` option
+
+### Key concepts
+- Jump tables: they're the core of the dispatching operations. A jump table is a `BPF_MAP_TYPE_PROG_ARRAY` that is filled with fds of neighbouring programs as
+specified by configuration. Each program can then reference other programs by calling `bpf_tail_call` with the correct index.
+
+### TODO
+
+- [x] Do not reuse jump table maps (fixes race condition where an old program could possibly jump to a new program)
+- [ ] Reuse existing links (0 downtime replacement)
+
+## Writing programs
+
+### Section and section names
+
+XDP programs export names under sections specified by the `SEC(...)` directive.
+
+What `lowhosting-loader` is interested in is the **name of the function** exported by
+the compiled program, not the name of the section it is exported in.
+
+| Object | Section | Directive |
+|---|---|---|
+| Programs | xdp | `SEC("xdp")` |
+| Map | .maps | `SEC(".maps")` |
+
+> [!TIP]
+> Examples show where to put both xdp and .maps SEC directives
+
+### Map pinning
+
+This loader uses the LIBBPF pinning convention for map pinning. To have a map pinned by the aforementioned convention you must specify the `LIBBPF_PIN_BY_MAME` flag.
+
+Example map definition:
+```c
+struct
+{
+   __uint(type, BPF_MAP_TYPE_ARRAY);
+   __uint(max_entries, 1000);
+   __type(key, __u32);
+   __type(value, __u32);
+   __uint(pinning, LIBBPF_PIN_BY_NAME);
+} my_pinned_map SEC(".maps");
+```
+
+> [!TIP]
+> It is better to **NOT** pin a jump table to a folder.
+>
+> Pinning a jump table would create an ambiguos situation where one unloaded program could reference
+> new loaded programs that have been put into the jump table instead of the original ones.
+
+## Cli
+
+Attaching a program
+```sh
+lowhosting-loader attach bpf_file.o
+```
+
+You can explore all program functionalities through the `help` command (powered by [clap](docs.rs/clap))
+```
+lowhosting-loader help
+```
+
+## Example
+
+### Configuration
+
+> [!CAUTION]
+> Never change a configuration file's folders before detaching the
+program, or else the loader won't know where to unload the programs / maps from.
+This isn't dangerous as-is, but those resources could stay leaked forever!
+
+Example configuration
+```toml
+[directories]
+# maps = "/sys/fs/bpf/maps"
+# programs = "/sys/fs/bpf/programs"
+# links = "/sys/fs/bpf/links"
+
+[[attach]]
+program = "xdp_entry"
+ifaces = ["eno1"]
+
+[[tables.JUMP_TABLE]]
+program = "xdp_tcp_program"
+index = 1
+
+[[tables.JUMP_TABLE]]
+program = "xdp_udp_program""
+index = 2
+```
+
+Example configuration when no jump table is required:
+```toml
+[directories]
+base = "/sys/fs/bpf/cockandballs"
+
+maps = "/sys/fs/bpf/maps"
+programs = "
+links = "/sys/fs/bpf/links"
+
+[[attach]]
+program = "section_name"
+ifaces = ["if1, if2, if3"]
+```
+
+### Example Program
+
+```c
+#include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_endian.h>
+#include <linux/in.h>
+#include <linux/if_ether.h>
+#include <linux/if_arp.h>
+#include <linux/ip.h>
+#include <linux/icmp.h>
+#include <linux/udp.h>
+#include <linux/tcp.h>
+#include <linux/ipv6.h>
+#include <linux/pkt_cls.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <sys/cdefs.h>
+
+#define ETH_LEN 14
+#define MAX_CSUM_WORDS 128
+#define MAX_PACKET_OFF 0xffff
+
+struct
+{
+   __uint(type, BPF_MAP_TYPE_ARRAY);
+   __uint(max_entries, 1000);
+   __type(key, __u32);
+   __type(value, __u32);
+   __uint(pinning, LIBBPF_PIN_BY_NAME);
+} my_map SEC(".maps");
+
+struct
+{
+   __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+   __uint(max_entries, 1000);
+   __type(key, __u32);
+   __type(value, __u32);
+} JUMP_TABLE SEC(".maps");
+
+SEC("xdp")
+int xdp_entry(struct xdp_md *ctx)
+{
+    void *data_end = (void *)(long)ctx->data_end;
+    void *data = (void *)(long)ctx->data;
+    struct ethhdr *eth = data;
+    __u64 eth_off = sizeof(*eth);
+    struct iphdr *iph = data + eth_off;
+
+    // standard bound checking formalities
+    if (eth + 1 > data_end)
+        return XDP_DROP;
+    if (eth->h_proto != bpf_htons(ETH_P_IP))
+        return XDP_PASS;
+
+    if (iph + 1 > data_end)
+        return XDP_DROP;
+
+    if (iph->protocol == IPPROTO_TCP)
+        bpf_tail_call(ctx, &JUMP_TABLE, 1);
+    else if (iph->protocol == IPPROTO_UDP)
+        bpf_tail_call(ctx, &JUMP_TABLE, 2);
+
+   return XDP_PASS;
+}
+
+SEC("xdp")
+int xdp_tcp_program(struct xdp_md *ctx) {
+    return XDP_DROP;
+}
+
+SEC("xdp")
+int xdp_udp_program(struct xdp_md *ctx) {
+    return XDP_DROP;
+}
+```
