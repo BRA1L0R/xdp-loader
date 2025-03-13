@@ -24,3 +24,4 @@ jobs:
         with:
           RUSTTARGET: x86_64-unknown-linux-musl
           EXTRA_FILES: "README.md LICENSE.md"
+          TOOLCHAIN_VERSION: stable
