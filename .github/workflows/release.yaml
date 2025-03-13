@@ -3,13 +3,18 @@ on:
     tags: [ 'v*.*.*' ]
 
 jobs:
-  release:
-    name: release ${{ matrix.target }}
+  check:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [x86_64-unknown-linux-musl]
+    container: rust:slim
+    steps:
+      - uses: actions/checkout@v1
+      - run: rustup component add clippy
+      - run: cargo clippy
+  release:
+    name: Release binaries
+    runs-on: ubuntu-latest
+    container: rust:slim
+    needs: [check]
     steps:
       - uses: actions/checkout@master
       - name: Compile and release
@@ -17,5 +22,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          RUSTTARGET: ${{ matrix.target }}
+          RUSTTARGET: x86_64-unknown-linux-musl
           EXTRA_FILES: "README.md LICENSE.md"
