@@ -1,5 +1,3 @@
-
-
 ## Details
 
 - Folder structures
@@ -22,7 +20,7 @@ specified by configuration. Each program can then reference other programs by ca
 
 XDP programs export names under sections specified by the `SEC(...)` directive.
 
-What `lowhosting-loader` is interested in is the **name of the function** exported by
+What `xdp-loader` is interested in is the **name of the function** exported by
 the compiled program, not the name of the section it is exported in.
 
 | Object | Section | Directive |
@@ -59,12 +57,12 @@ struct
 
 Attaching a program
 ```sh
-lowhosting-loader attach bpf_file.o
+xdp-loader attach bpf_file.o
 ```
 
 You can explore all program functionalities through the `help` command (powered by [clap](docs.rs/clap))
 ```
-lowhosting-loader help
+xdp-loader help
 ```
 
 ## Example

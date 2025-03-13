@@ -3,7 +3,7 @@ mod config;
 pub mod options;
 pub mod pin;
 
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use anyhow::Context;
 use aya::{
@@ -33,11 +33,7 @@ impl DirectorySystem {
     }
 }
 
-// impl TryFrom<config::Directories> for DirectorySystem {
-//     type Error = anyhow::Error;
-//     fn try_from(value: config::Directories) -> Result<Self, Self::Error> {}
-// }
-
+// xdp-loader detach
 fn detach_command(config: Config, mut ds: DirectorySystem, cleanup: bool) -> anyhow::Result<()> {
     log::info!("Detaching XDP links and programs");
 
@@ -71,25 +67,12 @@ fn detach_command(config: Config, mut ds: DirectorySystem, cleanup: bool) -> any
     Ok(())
 }
 
-fn run(options: Options) -> anyhow::Result<()> {
-    let config = Config::from_file(&options.config).context("error reading configuration file")?;
-    let [maps, links, programs] = config.directories.to_pin_folders()?;
-    let mut directories = DirectorySystem::new(maps, links, programs);
-
-    if options.purge_maps {
-        log::warn!("Deleting maps as requested...");
-
-        directories
-            .maps
-            .unpin_all()
-            .context("error unloading maps")?;
-    }
-
-    let bpf_file = match options.command {
-        Command::Detach { cleanup } => return detach_command(config, directories, cleanup),
-        Command::Attach { file } => file,
-    };
-
+// xdp-loader attach <file>
+fn attach_command(
+    config: Config,
+    mut directories: DirectorySystem,
+    bpf_file: PathBuf,
+) -> anyhow::Result<()> {
     log::info!("Attaching XDP program");
 
     // load the elf file containing the program
@@ -178,6 +161,26 @@ fn run(options: Options) -> anyhow::Result<()> {
     pin::pin_all(&directories.programs, programs.into_iter())?;
 
     Ok(())
+}
+
+fn run(options: Options) -> anyhow::Result<()> {
+    let config = Config::from_file(&options.config).context("error reading configuration file")?;
+    let [maps, links, programs] = config.directories.to_pin_folders()?;
+    let mut directories = DirectorySystem::new(maps, links, programs);
+
+    if options.purge_maps {
+        log::warn!("Deleting maps as requested...");
+
+        directories
+            .maps
+            .unpin_all()
+            .context("error unloading maps")?;
+    }
+
+    match options.command {
+        Command::Detach { cleanup } => detach_command(config, directories, cleanup),
+        Command::Attach { file } => attach_command(config, directories, file),
+    }
 }
 
 fn main() {
