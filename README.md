@@ -1,21 +1,30 @@
 ## Details
 
+### Key concepts
 - Folder structures
   - Maps and program sections will be saved in their corresponding folder with the same name as the section
   - Links will be saved with the following naming scheme: `{if name}_{program name}`
-- Verbose debug output through the `-v` option
-
-### Key concepts
-- Jump tables: they're the core of the dispatching operations. A jump table is a `BPF_MAP_TYPE_PROG_ARRAY` that is filled with fds of neighbouring programs as
-specified by configuration. Each program can then reference other programs by calling `bpf_tail_call` with the correct index.
+- Jump tables:
+  - A jump table is a `BPF_MAP_TYPE_PROG_ARRAY` that is filled with fds of neighbouring programs as
+specified by configuration.
+  - Each program can then reference other programs by calling `bpf_tail_call` with the correct index.
 
 ### TODO
 
 - [x] Do not reuse jump table maps (fixes race condition where an old program could possibly jump to a new program)
 - [ ] Reuse existing links (0 downtime replacement)
 
-## Writing programs
 
+## Cli
+
+Attaching a program
+```sh
+xdp-loader attach bpf_file.o
+```
+
+You can explore all program functionalities through the `help` command (powered by [clap](docs.rs/clap))
+
+## Writing programs
 ### Section and section names
 
 XDP programs export names under sections specified by the `SEC(...)` directive.
@@ -27,9 +36,6 @@ the compiled program, not the name of the section it is exported in.
 |---|---|---|
 | Programs | xdp | `SEC("xdp")` |
 | Map | .maps | `SEC(".maps")` |
-
-> [!TIP]
-> Examples show where to put both xdp and .maps SEC directives
 
 ### Map pinning
 
@@ -47,26 +53,14 @@ struct
 } my_pinned_map SEC(".maps");
 ```
 
-> [!TIP]
+> [!WARNING]
 > It is better to **NOT** pin a jump table to a folder.
 >
 > Pinning a jump table would create an ambiguos situation where one unloaded program could reference
 > new loaded programs that have been put into the jump table instead of the original ones.
 
-## Cli
-
-Attaching a program
-```sh
-xdp-loader attach bpf_file.o
-```
-
-You can explore all program functionalities through the `help` command (powered by [clap](docs.rs/clap))
-```
-xdp-loader help
-```
 
 ## Example
-
 ### Configuration
 
 > [!CAUTION]
