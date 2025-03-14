@@ -1,4 +1,6 @@
-## Details
+# XDP-LOADER
+![GitHub Release](https://img.shields.io/github/v/release/BRA1L0R/xdp-loader)
+
 
 ### Key concepts
 - Folder structures
@@ -17,12 +19,24 @@ specified by configuration.
 
 ## Cli
 
-Attaching a program
 ```sh
-xdp-loader attach bpf_file.o
+Usage: xdp-loader [OPTIONS] <COMMAND>
+
+Commands:
+  attach
+  detach
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -p, --purge-maps       creates maps from scratch, scrapping previously pinned maps and their contents
+  -v, --verbose          verbose debug output (Info)
+      --vv               very verbose debug output (Debug)
+  -s, --silent           limit console output to only hard errors
+  -c, --config <CONFIG>  specifies a config file [default: ./Config.toml]
+  -h, --help             Print help
 ```
 
-You can explore all program functionalities through the `help` command (powered by [clap](docs.rs/clap))
+Each command has options of its own. Run `xdp-loader <COMMAND> --help` to learn more.
 
 ## Writing programs
 ### Section and section names
@@ -53,7 +67,7 @@ struct
 } my_pinned_map SEC(".maps");
 ```
 
-> [!WARNING]
+> [!TIP]
 > It is better to **NOT** pin a jump table to a folder.
 >
 > Pinning a jump table would create an ambiguos situation where one unloaded program could reference
@@ -68,7 +82,9 @@ struct
 program, or else the loader won't know where to unload the programs / maps from.
 This isn't dangerous as-is, but those resources could stay leaked forever!
 
-Example configuration
+<details open>
+<summary>Example configuration</summary>
+
 ```toml
 [directories]
 base = "/sys/fs/bpf/my_program"
@@ -94,6 +110,8 @@ program = "xdp_udp_program""
 index = 2
 ```
 
+</details>
+
 This config file will fill the `JUMP_TABLE` program array in the following way:
 
 | Index | Program |
@@ -102,19 +120,21 @@ This config file will fill the `JUMP_TABLE` program array in the following way:
 | 1 | `xdp_tcp_program` |
 | 2 | `xdp_udp_program` |
 
-Ofcourse you're not obligated to setup a jump table if you don't require it
+Ofcourse you're not required to setup a jump table if you don't need one.
+
+<details open>
+<summary>Minimal configuration example</summary>
+  
 ```toml
 [directories]
 base = "/sys/fs/bpf/my_program"
 
-maps = "/sys/fs/bpf/maps"
-programs = ""
-links = "/sys/fs/bpf/links"
-
 [[attach]]
-program = "section_name"
+program = "xdp_entry"
 ifaces = ["if1, if2, if3"]
 ```
+
+</details>
 
 ### Example Program
 
