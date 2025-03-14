@@ -43,18 +43,16 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
+          repository: BRA1L0R/xdp-loader
           body: |
             ## Changelog
             ${{ steps.changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
           files: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # - name: Upload artifact
       #   uses: actions/upload-artifact@v4
