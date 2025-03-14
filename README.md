@@ -1,5 +1,6 @@
-# XDP-LOADER
-[![GitHub Release](https://img.shields.io/github/v/release/BRA1L0R/xdp-loader)](https://github.com/BRA1L0R/xdp-loader)
+# xdp-loader
+[![Get binaries](https://img.shields.io/badge/Download_Binary-grey?logo=hackthebox&logoColor=white)](https://github.com/BRA1L0R/xdp-loader/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/BRA1L0R/xdp-loader?logo=rust)](https://github.com/BRA1L0R/xdp-loader)
 
 
 ### Key concepts
