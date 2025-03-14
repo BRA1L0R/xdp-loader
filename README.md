@@ -1,5 +1,5 @@
 # XDP-LOADER
-![GitHub Release](https://img.shields.io/github/v/release/BRA1L0R/xdp-loader)
+[![GitHub Release](https://img.shields.io/github/v/release/BRA1L0R/xdp-loader)](https://github.com/BRA1L0R/xdp-loader)
 
 
 ### Key concepts
