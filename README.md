@@ -3,10 +3,11 @@
 [![GitHub Release](https://img.shields.io/github/v/release/BRA1L0R/xdp-loader?logo=rust)](https://github.com/BRA1L0R/xdp-loader)
 
 
-### Key concepts
+### Key concepts and features
 - Configuration file
   - Heavily inspired by **docker compose**, the base of every loadable project is a `Config.toml`
   - Pin location and jump tables can be configured through configuration files
+  - You can load **many programs** on many **different interfaces** at once abd share maps and jump tables between them
 - Folder structures
   - Maps and program sections will be saved in their corresponding folder with the same name as the section
   - Links will be saved with the following naming scheme: `{if name}_{program name}`
@@ -15,10 +16,6 @@
 specified by configuration.
   - Each program can then reference other programs by calling `bpf_tail_call` with the correct index.
 
-### TODO
-
-- [x] Do not reuse jump table maps (fixes race condition where an old program could possibly jump to a new program)
-- [ ] Reuse existing links (0 downtime replacement)
 
 
 ## Cli
@@ -104,6 +101,12 @@ base = "/sys/fs/bpf/my_program"
 [[attach]]
 program = "xdp_entry"
 ifaces = ["eno1"]
+
+# You can specify additional programs to load on different interfaces
+#
+# [[attach]]
+# program = "xdp_entry_2"
+# ifaces = ["eno2", "eno3"]
 
 [[tables.JUMP_TABLE]]
 program = "xdp_tcp_program"
