@@ -80,9 +80,12 @@ Example configuration
 base = "/sys/fs/bpf/my_program"
 
 [directories.overrides]
-maps = "/sys/fs/bpf/maps"
-programs = "/sys/fs/bpf/programs"
-links = "/sys/fs/bpf/links"
+#
+# You can specify overrides for the folders if your existing tooling needs it
+#
+# maps = "{base}/maps"
+# programs = "{base}/programs"
+# links = "{base}/links"
 
 [[attach]]
 program = "xdp_entry"
@@ -97,13 +100,21 @@ program = "xdp_udp_program""
 index = 2
 ```
 
-Example configuration when no jump table is required:
+This config file will fill the `JUMP_TABLE` program array in the following way:
+
+| Index | Program |
+|---|----|
+| 0 | None |
+| 1 | `xdp_tcp_program` |
+| 2 | `xdp_udp_program` |
+
+Ofcourse you're not obligated to setup a jump table if you don't require it
 ```toml
 [directories]
-base = "/sys/fs/bpf/cockandballs"
+base = "/sys/fs/bpf/my_program"
 
 maps = "/sys/fs/bpf/maps"
-programs = "
+programs = ""
 links = "/sys/fs/bpf/links"
 
 [[attach]]
