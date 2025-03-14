@@ -4,10 +4,13 @@
 
 
 ### Key concepts
+- Configuration file
+  - Heavily inspired by **docker compose**, the base of every loadable project is a `Config.toml`
+  - Pin location and jump tables can be configured through configuration files
 - Folder structures
   - Maps and program sections will be saved in their corresponding folder with the same name as the section
   - Links will be saved with the following naming scheme: `{if name}_{program name}`
-- Jump tables:
+- Jump tables
   - A jump table is a `BPF_MAP_TYPE_PROG_ARRAY` that is filled with fds of neighbouring programs as
 specified by configuration.
   - Each program can then reference other programs by calling `bpf_tail_call` with the correct index.
