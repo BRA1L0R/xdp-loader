@@ -106,7 +106,7 @@ program = "xdp_tcp_program"
 index = 1
 
 [[tables.JUMP_TABLE]]
-program = "xdp_udp_program""
+program = "xdp_udp_program"
 index = 2
 ```
 
