@@ -1,6 +1,6 @@
 on:
   push:
-    tags: [ 'v*.*.*' ]
+    tags: ["v*.*.*"]
 
 jobs:
   check:
@@ -17,7 +17,7 @@ jobs:
     needs: [check]
     steps:
       - uses: actions/checkout@master
-      - name: Compile and release
+      - name: Compile binaries
         id: compile
         uses: rust-build/rust-build.action@v1.4.5
         env:
@@ -27,10 +27,39 @@ jobs:
           EXTRA_FILES: "README.md LICENSE.md"
           TOOLCHAIN_VERSION: stable
           UPLOAD_MODE: none
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Simple changelog generation based on git commits
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "changelog=Initial release" >> $GITHUB_OUTPUT
+          else
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            git log --pretty=format:"- %s" $PREVIOUS_TAG..HEAD >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: Binary
-          path: |
-            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
-            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Changelog
+            ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          files: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+
+      # - name: Upload artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: Binary
+      #     path: |
+      #       ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+      #       ${{ steps.compile.outputs.BUILT_CHECKSUM }}
