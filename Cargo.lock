@@ -904,6 +904,7 @@ dependencies = [
  "aya",
  "clap",
  "env_logger",
+ "libc",
  "log",
  "serde",
  "thiserror 2.0.16",

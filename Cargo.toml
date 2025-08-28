@@ -8,6 +8,7 @@ anyhow = { version = "1.0.95" }
 aya = "0.13.1"
 clap = { version = "4.5.30", features = ["derive"] }
 env_logger = "0.11.6"
+libc = "0.2.175"
 log = "0.4.26"
 serde = { version = "1.0.218", features = ["derive"] }
 thiserror = "2.0.11"

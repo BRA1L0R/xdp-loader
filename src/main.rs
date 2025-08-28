@@ -75,6 +75,15 @@ fn attach_command(
 ) -> anyhow::Result<()> {
     log::info!("Attaching XDP program");
 
+    let rlim = libc::rlimit {
+        rlim_cur: libc::RLIM_INFINITY,
+        rlim_max: libc::RLIM_INFINITY,
+    };
+    let ret = unsafe { libc::setrlimit(libc::RLIMIT_MEMLOCK, &rlim) };
+    if ret != 0 {
+        log::error!("remove limit on locked memory failed, ret is: {}", ret);
+    }
+
     // load the elf file containing the program
     // and load the existing bpf maps
     let mut bpf = EbpfLoader::new()
