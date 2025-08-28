@@ -54,6 +54,12 @@ the compiled program, not the name of the section it is exported in.
 
 ### Map pinning
 
+> [!TIP]
+> It is better to **NOT** pin a jump table to a folder.
+>
+> Pinning a jump table would create an ambiguos situation where one unloaded program could reference
+> new loaded programs that have been put into the jump table instead of the original ones.
+
 This loader uses the LIBBPF pinning convention for map pinning. To have a map pinned by the aforementioned convention you must specify the `LIBBPF_PIN_BY_MAME` flag.
 
 Example map definition:
@@ -68,11 +74,6 @@ struct
 } my_pinned_map SEC(".maps");
 ```
 
-> [!TIP]
-> It is better to **NOT** pin a jump table to a folder.
->
-> Pinning a jump table would create an ambiguos situation where one unloaded program could reference
-> new loaded programs that have been put into the jump table instead of the original ones.
 
 
 ## Configuration
