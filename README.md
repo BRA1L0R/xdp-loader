@@ -75,13 +75,21 @@ struct
 > new loaded programs that have been put into the jump table instead of the original ones.
 
 
-## Example
-### Configuration
+## Configuration
 
 > [!CAUTION]
 > Never change a configuration file's folders before detaching the
 program, or else the loader won't know where to unload the programs / maps from.
 This isn't dangerous as-is, but those resources could stay leaked forever!
+
+
+> [!TIP]
+> Remember to specify the `attach_mode` under `[[attach]]` to ensure maximum performance of your xdp program.
+>
+> Possible values for `attach_mode` are:
+> - `skb`: emulated mode (default)
+> - `driver`: driver mode, only available with supported NIC drivers
+> - `hardware`: run BPF directly on supported NIC hardware
 
 <details open>
 <summary>Example configuration</summary>
@@ -100,6 +108,7 @@ base = "/sys/fs/bpf/my_program"
 
 [[attach]]
 program = "xdp_entry"
+attach_mode = "driver"
 ifaces = ["eno1"]
 
 # You can specify additional programs to load on different interfaces

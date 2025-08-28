@@ -20,6 +20,7 @@ pub enum ConfigError {
 }
 
 #[derive(Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
 pub enum AttachMode {
     Driver,
     Hardware,
